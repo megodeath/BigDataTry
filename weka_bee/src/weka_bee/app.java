@@ -40,7 +40,7 @@ public class app {
 
 		// Declare the feature vector
 
-		List<Vector<String>> testData = parseFile(new File("train.csv").toURI().toURL());
+		List<Vector<String>> testData = parseFile(new File("train.csv").toURI().toURL(), true);
 
 		// Create an empty training set
 		Instances isTrainingSet = new Instances("Rel", fvWekaAttributes, 50000);
@@ -51,8 +51,13 @@ public class app {
 			Instance iExample = new SparseInstance(TOTAL_X_DEF_64);
 			for (int i = 0; i < vector.size(); i++) {
 				if (((Attribute) fvWekaAttributes.elementAt(i)).isNumeric()) {
-					iExample.setValue((Attribute) fvWekaAttributes.elementAt(i),
-							Double.parseDouble(vector.elementAt(i)));
+					try {
+						iExample.setValue((Attribute) fvWekaAttributes.elementAt(i),
+								Double.parseDouble(vector.elementAt(i)));
+					} catch (Exception E) {
+						iExample.setValue((Attribute) fvWekaAttributes.elementAt(i),
+								0);
+					}
 				} else {
 					iExample.setValue((Attribute) fvWekaAttributes.elementAt(i), vector.elementAt(i));
 				}
@@ -88,7 +93,7 @@ public class app {
 
 	}
 
-	public static List<Vector<String>> parseFile(URL url) throws IOException {
+	public static List<Vector<String>> parseFile(URL url, boolean forLearning) throws IOException {
 
 		Splitter onComma = Splitter.on(",");
 		List<String> raw = Resources.readLines(url, Charsets.UTF_8);
@@ -108,9 +113,9 @@ public class app {
 			}
 			data.add(v);
 		}
-
+		if(forLearning){
 		fvWekaAttributes = createWekaAttributes(rawForNominal);
-
+		}
 		return data;
 	}
 
