@@ -3,15 +3,10 @@ package weka_bee;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.text.NumberFormat;
-import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.Vector;
 
 import com.google.common.base.Charsets;
@@ -39,13 +34,7 @@ public class app_weka {
 
 	public static void main(String[] args) throws Exception {
 
-		List<Vector<String>> testData = parseFile(new File("train.csv").toURI().toURL(), true);
-
-		List<Vector<String>> analyseData = parseFile(new File("test.csv").toURI().toURL(), false);
-
-		Instances isTrainingSet = generateExampleSet(testData);
-		// Instances isTestSet = generateExampleSet(analyseData);
-
+		Instances isTrainingSet = generateExampleSet(parseFile(new File("train.csv").toURI().toURL(), true));
 		Classifier cModel = (Classifier) new NaiveBayes();
 		cModel.buildClassifier(isTrainingSet);
 
@@ -56,10 +45,13 @@ public class app_weka {
 		System.out.println(strSummary);
 
 		double[][] cmMatrix = eTest.confusionMatrix();
-
 		for (double[] ds : cmMatrix) {
 			System.out.println(Arrays.toString(ds));
 		}
+		
+		System.gc(); 
+
+		List<Vector<String>> analyseData = parseFileTest(new File("test.csv").toURI().toURL());
 
 		for (Vector<String> vector : analyseData) {
 			Instance iExample = createInstanceFromData(vector);
@@ -98,7 +90,12 @@ public class app_weka {
 					return null;
 				}
 			} else {
+				try{
 				iExample.setValue((Attribute) fvWekaAttributes.elementAt(i), vector.elementAt(i));
+				}
+				catch(Exception E){
+					System.out.println(vector.elementAt(i));
+				}
 			}
 		}
 		return iExample;
@@ -109,17 +106,21 @@ public class app_weka {
 		Splitter onComma = Splitter.on(",");
 		List<String> raw = Resources.readLines(url, Charsets.UTF_8);
 		List<Vector<String>> data = Lists.newArrayList();
-
-		List<HashSet<String>> rawForNominal = new ArrayList<HashSet<String>>();
-		for (int i = 0; i < TOTAL_X_DEF_64; i++) {
-			rawForNominal.add(new HashSet<String>());
+		List<HashSet<String>> rawForNominal = null;
+		if (forLearning) {
+			rawForNominal = new ArrayList<HashSet<String>>();
+			for (int i = 0; i < TOTAL_X_DEF_64; i++) {
+				rawForNominal.add(new HashSet<String>());
+			}
 		}
 		for (String line : raw.subList(1, raw.size())) {
 			Vector<String> v = new Vector<String>(TOTAL_X_DEF_64);
 			int i = 0;
 			Iterable<String> values = onComma.split(line);
 			for (String value : Iterables.limit(values, TOTAL_X_DEF_64)) {
-				rawForNominal.get(i).add(value);
+				if (forLearning) {
+					rawForNominal.get(i).add(value);
+				}
 				v.add(i++, value);
 			}
 			data.add(v);
@@ -129,6 +130,29 @@ public class app_weka {
 		}
 		return data;
 	}
+	
+	public static List<Vector<String>> parseFileTest(URL url) throws IOException {
+
+		Splitter onComma = Splitter.on(",");
+		List<String> raw = Resources.readLines(url, Charsets.UTF_8);
+		List<Vector<String>> data = Lists.newArrayList();
+		for (String line : raw.subList(1, raw.size())) {
+			Vector<String> v = new Vector<String>(TOTAL_X_DEF_64-1);
+			int i = 0;
+			Iterable<String> values = onComma.split(line);
+			for (String value : Iterables.limit(values, TOTAL_X_DEF_64-1)) {
+				if(i == 0){
+					i++;
+					continue;
+				}
+				v.add(i++, value);
+			}
+			data.add(v);
+		}
+		return data;
+	}
+	
+	
 
 	private static FastVector createWekaAttributes(List<HashSet<String>> rawForNominal) {
 		FastVector fvWekaAttributes = new FastVector(TOTAL_X_DEF_64);
