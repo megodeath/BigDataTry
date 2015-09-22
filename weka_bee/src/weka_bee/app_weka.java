@@ -28,6 +28,7 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
+import weka.core.converters.CSVLoader;
 
 public class app_weka {
 
@@ -36,10 +37,18 @@ public class app_weka {
 	private static final int TOTAL_X_DEF_64 = 63;
 
 	public static FastVector fvWekaAttributes;
-
+	
 	public static void main(String[] args) throws Exception {
 
 		Instances isTrainingSet = generateExampleSet(parseFile(new File("train.csv").toURI().toURL(), true));
+		
+		/*CSVLoader loader = new CSVLoader();
+	    loader.setSource(new File("train.csv"));
+	    loader.setNominalAttributes("last");
+	    Instances isTrainingSet = loader.getDataSet();
+	    isTrainingSet.setClassIndex(62);*/
+	    
+	  
 		Classifier cModel = (Classifier) new NaiveBayes();
 		cModel.buildClassifier(isTrainingSet);
 
@@ -65,12 +74,12 @@ public class app_weka {
 		sb.append("\n");
 		int ind = 0;
 		for (Vector<String> vector : analyseData) {
-			Instance iExample = createInstanceFromData(vector);
+			Instance iExample = createInstanceFromDataCSV(vector,isTrainingSet);
 			if (iExample != null) {
 				iExample.setDataset(isTrainingSet);
 				 List<Double> resultList = Arrays.asList(ArrayUtils.toObject(cModel.distributionForInstance(iExample)));
 				 int group = resultList.indexOf(Collections.max(resultList));
-				 sb.append(ind+","+group);
+				 sb.append(ind+","+ isTrainingSet.attribute(62).value(group).charAt(0));
 				 sb.append("\n");
 			}
 			ind++;
@@ -94,6 +103,32 @@ public class app_weka {
 			}
 		}
 		return isTrainingSet;
+	}
+	
+	private static Instance createInstanceFromDataCSV(Vector<String> vector, Instances isTrainingSet) {
+		Instance iExample = new SparseInstance(TOTAL_X_DEF_64);
+		for (int i = 0; i < vector.size(); i++) {
+			if ( isTrainingSet.attribute(i).isNumeric()) {
+				try {
+					iExample.setValue(isTrainingSet.attribute(i),
+							Double.parseDouble(vector.elementAt(i)));
+				} catch (Exception E) {
+					// iExample.setValue((Attribute)
+					iExample.setValue(isTrainingSet.attribute(i),
+							0);
+					//return null;
+				}
+			} else {
+				try{
+				iExample.setValue(isTrainingSet.attribute(i), vector.elementAt(i));
+				}
+				catch(Exception E){
+				//	E.printStackTrace();
+				//	System.out.println("problem with "+vector.elementAt(i));
+				}
+			}
+		}
+		return iExample;
 	}
 
 	private static Instance createInstanceFromData(Vector<String> vector) {
