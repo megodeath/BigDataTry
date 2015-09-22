@@ -1,13 +1,18 @@
 package weka_bee;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.commons.lang.ArrayUtils;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
@@ -53,13 +58,27 @@ public class app_weka {
 
 		List<Vector<String>> analyseData = parseFileTest(new File("test.csv").toURI().toURL());
 
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("result.csv").getAbsoluteFile()));
+		
+		StringBuffer sb = new StringBuffer();
+		sb.append("ID,y");
+		sb.append("\n");
+		int ind = 0;
 		for (Vector<String> vector : analyseData) {
 			Instance iExample = createInstanceFromData(vector);
 			if (iExample != null) {
 				iExample.setDataset(isTrainingSet);
-				System.out.println(Arrays.toString(cModel.distributionForInstance(iExample)));
+				 List<Double> resultList = Arrays.asList(ArrayUtils.toObject(cModel.distributionForInstance(iExample)));
+				 int group = resultList.indexOf(Collections.max(resultList));
+				 sb.append(ind+","+group);
+				 sb.append("\n");
 			}
+			ind++;
 		}
+		bw.write(sb.toString());
+		bw.flush();
+		bw.close();
+		System.out.println("УСЕ ЕПТА");
 
 	}
 
@@ -94,6 +113,7 @@ public class app_weka {
 				iExample.setValue((Attribute) fvWekaAttributes.elementAt(i), vector.elementAt(i));
 				}
 				catch(Exception E){
+					E.printStackTrace();
 					System.out.println(vector.elementAt(i));
 				}
 			}
@@ -145,7 +165,7 @@ public class app_weka {
 					i++;
 					continue;
 				}
-				v.add(i++, value);
+				v.add((i++)-1, value);
 			}
 			data.add(v);
 		}
